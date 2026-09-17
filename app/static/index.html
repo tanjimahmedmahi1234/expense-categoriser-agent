@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expense Agent</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px;
+    background: #f4f6fb; color: #1b2436;
+  }
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 12px 20px;
+    background: #ffffff; border-bottom: 1px solid #e3e8f2;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  .pill { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #e8efff; color: #1d4ed8; }
+  .pill.bad { background: #fee2e2; color: #b91c1c; }
+  header .spacer { flex: 1; }
+  button {
+    font: inherit; border: 1px solid #d4dcea; background: #fff; color: #1b2436;
+    padding: 7px 12px; border-radius: 8px; cursor: pointer;
+  }
+  button:hover { background: #f0f4fb; }
+  button.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+  button.primary:hover { background: #1d4ed8; }
+  button:disabled { opacity: .5; cursor: default; }
+
+  main {
+    display: grid; grid-template-columns: 270px 1fr 330px; gap: 14px;
+    padding: 14px 20px; height: calc(100vh - 56px);
+  }
+  .panel {
+    background: #fff; border: 1px solid #e3e8f2; border-radius: 12px;
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  }
+  .panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #6b7a94;
+    margin: 0; padding: 12px 14px 8px;
+  }
+  .scroll { overflow-y: auto; flex: 1; min-height: 0; }
+
+  /* expenses list */
+  .expense {
+    padding: 8px 14px; border-top: 1px solid #f0f3f8; cursor: pointer; display: flex; flex-direction: column; gap: 2px;
+  }
+  .expense:hover { background: #f6f8fc; }
+  .expense.selected { background: #e8efff; }
+  .expense .top { display: flex; justify-content: space-between; gap: 8px; }
+  .expense .desc { font-weight: 500; }
+  .expense .meta { font-size: 12px; color: #6b7a94; display: flex; gap: 6px; align-items: center; }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: #eef1f6; color: #4b5b76; }
+  .tag.none { background: #fff3cd; color: #92400e; }
+  .add { padding: 10px 14px; border-top: 1px solid #e3e8f2; display: flex; flex-direction: column; gap: 6px; }
+  .add input { font: inherit; padding: 6px 8px; border: 1px solid #d4dcea; border-radius: 6px; }
+
+  /* chat */
+  .chat { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; line-height: 1.45; }
+  .msg.user { align-self: flex-end; background: #2563eb; color: #fff; border-bottom-right-radius: 4px; }
+  .msg.agent { align-self: flex-start; background: #f1f4fa; border-bottom-left-radius: 4px; }
+  .msg.error { align-self: flex-start; background: #fee2e2; color: #7f1d1d; }
+  .msg .big { font-size: 20px; font-weight: 600; margin: 2px 0 6px; }
+  .msg .reason { color: #3b4964; }
+  .msg .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #fff; border: 1px solid #d4dcea; color: #4b5b76; }
+  .chip.warn { background: #fff3cd; border-color: #fcd34d; color: #92400e; }
+  .chip.fallback { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+  .chip.tool { background: #e8efff; border-color: #bfd0ff; color: #1d4ed8; }
+  .conf { height: 6px; background: #e3e8f2; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .conf > div { height: 100%; background: #2563eb; }
+  .typing { color: #6b7a94; font-style: italic; }
+
+  .composer { border-top: 1px solid #e3e8f2; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .composer select, .composer input {
+    font: inherit; padding: 8px 10px; border: 1px solid #d4dcea; border-radius: 8px; background: #fff;
+  }
+  .composer input.grow { flex: 1; min-width: 140px; }
+  .selected-chip { background: #e8efff; color: #1d4ed8; padding: 6px 10px; border-radius: 8px; font-size: 13px; }
+  .hint { font-size: 12px; color: #6b7a94; }
+
+  /* right column */
+  .tiles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 14px 10px; }
+  .tile { background: #f6f8fc; border-radius: 8px; padding: 8px 10px; }
+  .tile .n { font-size: 20px; font-weight: 600; }
+  .tile .l { font-size: 11px; color: #6b7a94; }
+  .kv { padding: 0 14px 10px; font-size: 12px; display: grid; grid-template-columns: 95px 1fr; gap: 3px 8px; }
+  .kv .k { color: #6b7a94; }
+  .kv .v { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist { font-size: 12px; padding: 5px 14px; border-top: 1px solid #f0f3f8; display: flex; gap: 8px; }
+  .hist .t { color: #6b7a94; white-space: nowrap; }
+  .log { font-family: Consolas, Menlo, monospace; font-size: 11px; padding: 6px 14px; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+  .log .state { color: #1d4ed8; font-weight: 600; }
+  .log .tool { color: #047857; }
+  .log .warn { color: #b45309; }
+  .log .err { color: #b91c1c; font-weight: 600; }
+  .right { display: grid; grid-template-rows: auto 1fr 1.2fr; gap: 14px; min-height: 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Expense Agent</h1>
+  <span class="pill" id="health">connecting...</span>
+  <span class="spacer"></span>
+  <button id="resetBtn" title="Clears the agent state (run counts, history)">Reset state</button>
+  <a href="/docs" target="_blank"><button>API docs</button></a>
+</header>
+
+<main>
+  <!-- left: expenses -->
+  <section class="panel">
+    <h2>Expenses</h2>
+    <div class="scroll" id="expenses"></div>
+    <div class="add">
+      <input id="addDesc" placeholder="New expense description">
+      <div class="row">
+        <input id="addAmount" type="number" step="0.01" placeholder="Amount" style="width:100px">
+        <input id="addMerchant" placeholder="Merchant (optional)" style="flex:1">
+      </div>
+      <button id="addBtn">Add expense</button>
+    </div>
+  </section>
+
+  <!-- middle: chat -->
+  <section class="panel">
+    <div class="chat" id="chat">
+      <div class="msg agent">Hi. Pick an expense on the left or type one below, choose what you want me to do, and press Ask.</div>
+    </div>
+    <div class="composer">
+      <div class="row">
+        <select id="action">
+          <option value="categorize_expense">Categorise this expense</option>
+          <option value="check_unusual_expense">Is this expense unusual?</option>
+          <option value="monthly_summary">Summarise my spending</option>
+        </select>
+        <span class="selected-chip" id="selectedChip" style="display:none"></span>
+        <button id="clearSel" style="display:none">clear</button>
+        <input id="days" type="number" min="1" max="90" value="30" style="width:80px; display:none" title="days">
+      </div>
+      <div class="row" id="freeRow">
+        <input class="grow" id="freeDesc" placeholder="...or type a new expense, e.g. Spotify premium">
+        <input id="freeAmount" type="number" step="0.01" placeholder="Amount" style="width:100px">
+      </div>
+      <div class="row">
+        <span class="hint" id="hint" style="flex:1"></span>
+        <button class="primary" id="askBtn">Ask the agent</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- right: state, history, log -->
+  <div class="right">
+    <section class="panel">
+      <h2>Agent state</h2>
+      <div class="tiles">
+        <div class="tile"><div class="n" id="runCount">0</div><div class="l">runs</div></div>
+        <div class="tile"><div class="n" id="errorCount">0</div><div class="l">errors</div></div>
+        <div class="tile"><div class="n" id="fallbackCount">0</div><div class="l">fallbacks</div></div>
+      </div>
+      <div class="kv">
+        <span class="k">last action</span><span class="v" id="lastAction">-</span>
+        <span class="k">last result</span><span class="v" id="lastResult">-</span>
+        <span class="k">last tool</span><span class="v" id="lastTool">-</span>
+        <span class="k">last error</span><span class="v" id="lastError">-</span>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>History</h2>
+      <div class="scroll" id="history"></div>
+    </section>
+    <section class="panel">
+      <h2>Log</h2>
+      <div class="scroll log" id="log"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+// ---- helpers ----
+function esc(s) {
+  // never put raw text from the API into innerHTML
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+async function getJSON(url) { const r = await fetch(url); return r.json(); }
+async function postJSON(url, body) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  const data = await r.json();
+  return { ok: r.ok, status: r.status, data };
+}
+const $ = id => document.getElementById(id);
+
+let expenses = [];
+let selected = null;   // the selected expense object
+let busy = false;
+
+// ---- expenses list ----
+async function loadExpenses() {
+  expenses = await getJSON("/api/expenses");
+  const box = $("expenses");
+  box.innerHTML = "";
+  for (const e of expenses.slice().sort((a, b) => b.date.localeCompare(a.date))) {
+    const div = document.createElement("div");
+    div.className = "expense" + (selected && selected.id === e.id ? " selected" : "");
+    div.innerHTML =
+      `<div class="top"><span class="desc">${esc(e.description)}</span><span>$${Number(e.amount).toFixed(2)}</span></div>
+       <div class="meta">#${e.id} · ${esc(e.date)} · ${e.category ? `<span class="tag">${esc(e.category)}</span>` : `<span class="tag none">no category</span>`}</div>`;
+    div.onclick = () => selectExpense(e);
+    box.appendChild(div);
+  }
+}
+function selectExpense(e) {
+  selected = e;
+  $("selectedChip").textContent = `#${e.id} ${e.description} ($${Number(e.amount).toFixed(2)})`;
+  $("selectedChip").style.display = "";
+  $("clearSel").style.display = "";
+  $("freeDesc").value = ""; $("freeAmount").value = "";
+  loadExpenses();
+  updateHint();
+}
+$("clearSel").onclick = () => { selected = null; $("selectedChip").style.display = "none"; $("clearSel").style.display = "none"; loadExpenses(); updateHint(); };
+
+$("addBtn").onclick = async () => {
+  const body = { description: $("addDesc").value, amount: parseFloat($("addAmount").value), merchant: $("addMerchant").value || null };
+  const r = await postJSON("/api/expenses", body);
+  if (!r.ok) { addMsg("error", "Could not add: " + esc(JSON.stringify(r.data.detail))); return; }
+  $("addDesc").value = ""; $("addAmount").value = ""; $("addMerchant").value = "";
+  await loadExpenses();
+  selectExpense(r.data);
+};
+
+// ---- composer ----
+function updateHint() {
+  const a = $("action").value;
+  $("days").style.display = a === "monthly_summary" ? "" : "none";
+  // free text only makes sense for categorising
+  $("freeRow").style.display = a === "categorize_expense" ? "" : "none";
+  if (a === "monthly_summary") {
+    $("hint").textContent = "Summarises the last N days. The agent should call category_totals.";
+  } else if (a === "check_unusual_expense") {
+    $("hint").textContent = selected ? "Compares this expense with the average for its category." : "Select a saved expense on the left first.";
+  } else {
+    $("hint").textContent = selected ? "The agent only gets the id, so it has to call lookup_expense to see the details." : "Select a saved expense, or type a new one.";
+  }
+}
+$("action").onchange = updateHint;
+
+function addMsg(kind, html) {
+  const div = document.createElement("div");
+  div.className = "msg " + kind;
+  div.innerHTML = html;
+  $("chat").appendChild(div);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  return div;
+}
+
+async function ask() {
+  if (busy) return;
+  const action = $("action").value;
+  let url = "/api/agent/" + action, body = {}, userText = "";
+
+  if (action === "monthly_summary") {
+    body = { days: parseInt($("days").value || "30") };
+    userText = `Summarise my spending for the last ${body.days} days`;
+  } else if (selected) {
+    body = { expense_id: selected.id };
+    userText = (action === "categorize_expense" ? "Categorise" : "Is this unusual?") + ` #${selected.id} ${selected.description} ($${Number(selected.amount).toFixed(2)})`;
+  } else if (action === "categorize_expense" && $("freeDesc").value.trim()) {
+    body = { description: $("freeDesc").value.trim(), amount: parseFloat($("freeAmount").value) || null };
+    userText = `Categorise "${body.description}"` + (body.amount ? ` ($${body.amount})` : "");
+  } else {
+    $("hint").textContent = "Select an expense or type one first.";
+    return;
+  }
+
+  busy = true;
+  addMsg("user", esc(userText));
+  const thinking = addMsg("agent typing", "thinking...");
+  const t0 = Date.now();
+  try {
+    const r = await postJSON(url, body);
+    thinking.remove();
+    if (!r.ok) {
+      addMsg("error", `<b>${r.status}</b> ${esc(r.data.error)}: ${esc(Array.isArray(r.data.detail) ? r.data.detail.join("; ") : r.data.detail)}<div class="chips"><span class="chip">request ${esc(r.data.request_id)}</span></div>`);
+    } else {
+      renderResult(r.data, Date.now() - t0);
+    }
+  } catch (e) {
+    thinking.remove();
+    addMsg("error", "Could not reach the server: " + esc(e.message));
+  }
+  busy = false;
+  loadExpenses(); refreshState();
+}
+$("askBtn").onclick = ask;
+$("freeDesc").addEventListener("keydown", e => { if (e.key === "Enter") ask(); });
+
+function renderResult(d, ms) {
+  const res = d.result;
+  let big = "";
+  if (res.action === "categorize_expense") big = res.category ? esc(res.category) : "no category";
+  else if (res.action === "check_unusual_expense") big = res.is_unusual === null ? "can't tell" : (res.is_unusual ? "Yes, unusual" : "No, normal");
+  else big = esc(res.summary || "(no summary)");
+
+  const chips = [];
+  for (const t of d.tools_called) chips.push(`<span class="chip tool">tool: ${esc(t)}</span>`);
+  if (d.tools_called.length === 0) chips.push(`<span class="chip">no tools used</span>`);
+  if (d.fallback_used) chips.push(`<span class="chip fallback">fallback rule used</span>`);
+  for (const w of d.warnings) chips.push(`<span class="chip warn">${esc(w)}</span>`);
+  chips.push(`<span class="chip">prompt ${esc(d.prompt_version)}</span>`);
+  chips.push(`<span class="chip">${d.latency_ms} ms</span>`);
+  chips.push(`<span class="chip">req ${esc(d.request_id)}</span>`);
+
+  const pct = Math.round((res.confidence || 0) * 100);
+  addMsg("agent",
+    `<div class="big">${big}</div>
+     <div class="reason">${esc(res.reasoning)}</div>
+     <div class="conf" title="confidence ${pct}%"><div style="width:${pct}%"></div></div>
+     <div class="hint">confidence ${pct}%</div>
+     <div class="chips">${chips.join("")}</div>`);
+}
+
+// ---- right column ----
+async function refreshState() {
+  try {
+    const s = await getJSON("/api/agent/state");
+    $("runCount").textContent = s.run_count;
+    $("errorCount").textContent = s.error_count;
+    $("fallbackCount").textContent = s.fallback_count;
+    $("lastAction").textContent = s.last_action || "-";
+    $("lastResult").textContent = s.last_result == null ? "-" : String(s.last_result);
+    $("lastTool").textContent = s.last_tool_call ? `${s.last_tool_call.name}(${JSON.stringify(s.last_tool_call.args)})` : "-";
+    $("lastError").textContent = s.last_error || "-";
+    $("lastResult").title = $("lastResult").textContent;
+
+    const h = await getJSON("/api/agent/history?limit=30");
+    $("history").innerHTML = h.map(item => {
+      const time = esc((item.time || "").slice(11, 19));
+      if (item.type === "tool") return `<div class="hist"><span class="t">${time}</span><span>tool <b>${esc(item.name)}</b> ${esc(JSON.stringify(item.args))}</span></div>`;
+      return `<div class="hist"><span class="t">${time}</span><span><b>${esc(item.action)}</b> → ${esc(String(item.result)).slice(0, 60)}${item.fallback ? ' <span class="chip fallback">fallback</span>' : ""}</span></div>`;
+    }).join("") || `<div class="hist"><span class="t">nothing yet</span></div>`;
+
+    const lines = await getJSON("/api/agent/logs?lines=60");
+    $("log").innerHTML = lines.map(l => {
+      let cls = "";
+      if (l.includes("STATE TRANSITION") || l.includes("STATE RESET")) cls = "state";
+      else if (l.includes("TOOL CALL") || l.includes("TOOL RESULT")) cls = "tool";
+      else if (l.includes("WARNING")) cls = "warn";
+      else if (l.includes("ERROR")) cls = "err";
+      return `<span class="${cls}">${esc(l.replace(/^\S+ /, ""))}</span>`;  // drop the date, keep the time
+    }).join("\n");
+    $("log").scrollTop = $("log").scrollHeight;
+  } catch (e) { /* server probably restarting */ }
+}
+async function refreshHealth() {
+  try {
+    const h = await getJSON("/health");
+    $("health").textContent = `${h.model} · prompt ${h.prompt_version} · ${h.llm_ready ? "model ready" : "NO MODEL, fallback only"}`;
+    $("health").className = "pill" + (h.llm_ready ? "" : " bad");
+  } catch (e) { $("health").textContent = "server not reachable"; $("health").className = "pill bad"; }
+}
+$("resetBtn").onclick = async () => { await postJSON("/api/agent/state/reset"); refreshState(); addMsg("agent", "State reset."); };
+
+// ---- start ----
+loadExpenses(); refreshState(); refreshHealth(); updateHint();
+setInterval(refreshState, 3000);
+setInterval(refreshHealth, 10000);
+</script>
+</body>
+</html>

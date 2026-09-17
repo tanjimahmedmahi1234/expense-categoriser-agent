@@ -1,0 +1,114 @@
+[
+  {
+    "id": 1,
+    "description": "Woolworths weekly groceries",
+    "amount": 86.4,
+    "date": "2026-09-16",
+    "category": "food",
+    "merchant": "Woolworths"
+  },
+  {
+    "id": 2,
+    "description": "Myki top up",
+    "amount": 50.0,
+    "date": "2026-09-15",
+    "category": "transport",
+    "merchant": "PTV"
+  },
+  {
+    "id": 3,
+    "description": "Rent for September",
+    "amount": 1200.0,
+    "date": "2026-09-14",
+    "category": "rent",
+    "merchant": "Ray White"
+  },
+  {
+    "id": 4,
+    "description": "Netflix monthly",
+    "amount": 22.99,
+    "date": "2026-09-13",
+    "category": null,
+    "merchant": "Netflix"
+  },
+  {
+    "id": 5,
+    "description": "Uber to airport",
+    "amount": 68.5,
+    "date": "2026-09-12",
+    "category": "transport",
+    "merchant": "Uber"
+  },
+  {
+    "id": 6,
+    "description": "Chemist Warehouse vitamins",
+    "amount": 34.95,
+    "date": "2026-09-11",
+    "category": null,
+    "merchant": "Chemist Warehouse"
+  },
+  {
+    "id": 7,
+    "description": "Origin electricity bill",
+    "amount": 210.3,
+    "date": "2026-09-09",
+    "category": "utilities",
+    "merchant": "Origin"
+  },
+  {
+    "id": 8,
+    "description": "Coffee at campus cafe",
+    "amount": 5.5,
+    "date": "2026-09-08",
+    "category": "food",
+    "merchant": "Cafe"
+  },
+  {
+    "id": 9,
+    "description": "JB Hi-Fi headphones",
+    "amount": 349.0,
+    "date": "2026-09-07",
+    "category": null,
+    "merchant": "JB Hi-Fi"
+  },
+  {
+    "id": 10,
+    "description": "Textbook for COIT12204",
+    "amount": 120.0,
+    "date": "2026-09-05",
+    "category": "education",
+    "merchant": "Booktopia"
+  },
+  {
+    "id": 11,
+    "description": "Dinner with friends",
+    "amount": 95.0,
+    "date": "2026-09-03",
+    "category": "food",
+    "merchant": "Restaurant"
+  },
+  {
+    "id": 12,
+    "description": "Coffee",
+    "amount": 4.8,
+    "date": "2026-08-28",
+    "category": "food",
+    "merchant": "Cafe"
+  },
+  {
+    "id": 13,
+    "description": "Gym membership",
+    "amount": 59.0,
+    "date": "2026-08-23",
+    "category": "health",
+    "merchant": "Anytime Fitness"
+  },
+  {
+    "id": 14,
+    "description": "Coles groceries",
+    "amount": 410.0,
+    "date": "2026-08-08",
+    "category": "food",
+    "merchant": "Coles"
+  }
+]
