@@ -9,10 +9,3 @@ data/agent_state.json
 demo_output.txt
 .DS_Store
 Thumbs.db
-
-.env
-.env.*
-.venv/
-venv/
-__pycache__/
-.DS_Store

@@ -9,7 +9,6 @@ I use create_tool_calling_agent + AgentExecutor from LangChain. The executor doe
 tool loop for me. After it finishes I parse the text into AgentResult. If that fails
 I try once more, and if it still fails I fall back to simple rules.
 """
-import os
 import re
 import time
 import json
@@ -105,14 +104,14 @@ def parse_output(text):
 
     try:
         return PARSER.parse(text)
-    except:
+    except Exception:
         # the model probably talked before the JSON. try to find the first { ... }
         start = text.find("{")
         end = text.rfind("}")
         if start != -1 and end > start:
             try:
                 return AgentResult(**json.loads(text[start : end + 1]))
-            except:
+            except Exception:
                 pass
     logger.warning("PARSE FAILED could not read JSON from: %r", text[:120])
     return None
@@ -148,7 +147,9 @@ def rule_category(description, merchant=None):
 def rule_is_unusual(store, expense):
     """An expense is unusual if it is more than double the average of the others in its category."""
     cat = expense.category or rule_category(expense.description, expense.merchant)
-    others = [e.amount for e in store.recent(90) if e.category == cat and e.id != expense.id]
+    # 30 days to match the window the v3 prompt gives the model, so the rule answer
+    # and the model answer are judged against the same period.
+    others = [e.amount for e in store.recent(30) if e.category == cat and e.id != expense.id]
     if len(others) < 2:
         return False, cat  # not enough data to say
     avg = sum(others) / len(others)
@@ -277,7 +278,18 @@ class ExpenseAgent:
             "RUN END action=%s fallback=%s tools=%s confidence=%s latency=%dms",
             action, fallback_used, tools_called, result.confidence, latency,
         )
-        print("Agent finished:", action, "->", result.category or result.is_unusual or "summary")
+        # False and None are both falsy, so a plain "or" chain printed "summary"
+        # for a not-unusual answer and for an expense that does not exist.
+        if action == "categorize_expense":
+            answer = result.category or "no category"
+        elif action == "check_unusual_expense":
+            if result.is_unusual is None:
+                answer = "could not tell"
+            else:
+                answer = "unusual" if result.is_unusual else "not unusual"
+        else:
+            answer = "summary"
+        print("Agent finished:", action, "->", answer)
 
         return {
             "result": result,
@@ -329,7 +341,9 @@ class ExpenseAgent:
         # monthly_summary
         totals = category_totals.invoke({"days": days})
         by_cat = totals["by_category"]
-        biggest = max(by_cat, key=by_cat.get) if by_cat else "nothing"
+        # "uncategorised" is a bucket, not a category, so it must not win here
+        real = {k: v for k, v in by_cat.items() if k != "uncategorised"}
+        biggest = max(real, key=real.get) if real else "nothing"
         summary = (
             f"You spent ${totals['total']:.2f} across {totals['count']} expenses in the last {days} days. "
             f"The biggest category was {biggest}. {totals['uncategorised']} expenses still have no category."

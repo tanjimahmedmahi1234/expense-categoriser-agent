@@ -17,11 +17,6 @@ from fastapi.responses import JSONResponse, FileResponse
 
 from app.agent import ExpenseAgent, InputRejected
 from app.config import MODEL_NAME, PROMPT_VERSION, LOG_FILE
-
-STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
-
-# the web page polls these every few seconds, logging them would flood the log
-QUIET_PATHS = ["/", "/health", "/api/agent/state", "/api/agent/history", "/api/agent/logs", "/api/expenses"]
 from app.logger import logger
 from app.models import (
     CategorizeRequest,
@@ -31,6 +26,11 @@ from app.models import (
 )
 from app.state import AgentState
 from app.store import ExpenseStore
+
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+# the web page polls these every few seconds, logging them would flood the log
+QUIET_PATHS = ["/", "/health", "/api/agent/state", "/api/agent/history", "/api/agent/logs", "/api/expenses"]
 
 
 def format_response(request_id, run):
